@@ -1,46 +1,38 @@
 package com.rag.app;
 
-import java.util.List;
+import java.util.*;
 
 public class Retriever {
 
-    public static DocumentChunk retrieve(
+    public static List<SearchResult> retrieveTopK(
             String question,
-            List<DocumentChunk> chunks)
+            List<DocumentChunk> chunks, int k)
             throws Exception {
 
         float[] queryEmbedding =
                 EmbeddingService
                         .getEmbedding(question);
 
-        DocumentChunk bestChunk = null;
-
-        double bestScore = -1;
+        List<SearchResult> topKResults = new ArrayList<>();
 
         for (DocumentChunk chunk : chunks) {
 
             double score =
-                    CosineSimilarity
-                            .calculate(
-                                    queryEmbedding,
-                                    chunk.getEmbedding());
+                    CosineSimilarity.calculate(
+                            queryEmbedding,
+                            chunk.getEmbedding());
 
-            System.out.println(
-                    score
-                    + " -> "
-                    + chunk.getText());
-
-            if (score > bestScore) {
-
-                bestScore = score;
-                bestChunk = chunk;
-            }
+            topKResults.add(
+                    new SearchResult(
+                            chunk,
+                            score));
         }
-
-        System.out.println(
-                "\nBest Score = "
-                + bestScore);
-
-        return bestChunk;
+        topKResults.sort(
+                Comparator.comparingDouble(
+                        SearchResult::getScore)
+                        .reversed());
+        return topKResults.stream()
+                .limit(k)
+                .toList();
     }
 }

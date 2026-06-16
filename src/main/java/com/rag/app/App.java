@@ -29,21 +29,26 @@ public class App {
         }
 
         String question =
-                "Who is the CEO?";
+                "Who is the CEO? And when has joined";
 
-        DocumentChunk answer =
-                Retriever.retrieve(
+List<SearchResult> topKResults =
+                Retriever.retrieveTopK(
                         question,
-                        chunks);
+                        chunks, 3);
 
         System.out.println(
                 "\nQuestion:");
         System.out.println(
                 question);
 
-        System.out.println(
-                "\nRetrieved Chunk:");
-        System.out.println(
-                answer.getText());
+for (SearchResult result : topKResults) {
+
+    System.out.println(
+            "\nScore: "
+            + result.getScore());
+
+    System.out.println(
+            result.getChunk().getText());
+}
     }
 }
