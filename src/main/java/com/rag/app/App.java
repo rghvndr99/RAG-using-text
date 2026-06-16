@@ -1,5 +1,7 @@
 package com.rag.app;
+
 import java.util.List;
+
 /**
  * Hello world!
  */
@@ -7,48 +9,60 @@ public class App {
     public static void main(String[] args)
             throws Exception {
 
-        String document =
-                DocumentLoader.load(
-                        "docs/company.txt");
+        String document = DocumentLoader.load(
+                "docs/company.txt");
 
-        List<DocumentChunk> chunks =
-                Chunker.chunk(document);
+        List<DocumentChunk> chunks = Chunker.chunk(document);
 
         System.out.println(
                 "Generating embeddings...\n");
 
         for (DocumentChunk chunk : chunks) {
 
-            float[] embedding =
-                    EmbeddingService
-                            .getEmbedding(
-                                    chunk.getText());
+            float[] embedding = EmbeddingService
+                    .getEmbedding(
+                            chunk.getText());
 
             chunk.setEmbedding(
                     embedding);
         }
 
-        String question =
-                "Who is the CEO? And when has joined";
+        String question = "Who is the CEO? And when has joined";
 
-List<SearchResult> topKResults =
-                Retriever.retrieveTopK(
-                        question,
-                        chunks, 3);
+        List<SearchResult> topKResults = Retriever.retrieveTopK(
+                question,
+                chunks, 3);
+
+        String context = ContextBuilder.build(
+                topKResults);
+
+        String prompt = """
+                Answer only using the provided context.
+
+                Context:
+
+                %s
+
+                Question:
+
+                %s
+                """
+                .formatted(
+                        context,
+                        question);
+
+        String answer = LlmService.ask(
+                prompt);
 
         System.out.println(
                 "\nQuestion:");
         System.out.println(
                 question);
 
-for (SearchResult result : topKResults) {
+        System.out.println(
+                "\nAnswer:");
 
-    System.out.println(
-            "\nScore: "
-            + result.getScore());
-
-    System.out.println(
-            result.getChunk().getText());
-}
+        System.out.println(
+                answer);
     }
 }
