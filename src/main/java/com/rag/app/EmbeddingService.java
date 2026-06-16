@@ -2,6 +2,7 @@ package com.rag.app;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -16,14 +17,20 @@ public class EmbeddingService {
     public static float[] getEmbedding(String text)
             throws Exception {
 
-        String json = """
-        {
-          "model":"nomic-embed-text",
-          "prompt":"%s"
-        }
-        """.formatted(
-                text.replace("\"", "\\\"")
-        );
+        ObjectNode payload =
+                mapper.createObjectNode();
+
+        payload.put(
+                "model",
+                "nomic-embed-text");
+
+        payload.put(
+                "prompt",
+                text);
+
+        String json =
+                mapper.writeValueAsString(
+                        payload);
 
         HttpRequest request =
                 HttpRequest.newBuilder()
@@ -51,11 +58,43 @@ public class EmbeddingService {
                         HttpResponse.BodyHandlers.ofString()
                 );
 
+        if (response.statusCode() < 200
+                || response.statusCode() >= 300) {
+            throw new IllegalStateException(
+                    "Ollama embedding request failed with HTTP "
+                            + response.statusCode()
+                            + ": "
+                            + response.body());
+        }
+
         JsonNode root =
                 mapper.readTree(response.body());
 
         JsonNode embeddingNode =
                 root.get("embedding");
+
+        if (embeddingNode == null
+                && root.has("embeddings")
+                && root.get("embeddings").isArray()
+                && !root.get("embeddings").isEmpty()) {
+            embeddingNode =
+                    root.get("embeddings").get(0);
+        }
+
+        if (embeddingNode == null
+                || !embeddingNode.isArray()) {
+            String error =
+                    root.has("error")
+                            ? root.get("error").asText()
+                            : response.body();
+
+            throw new IllegalStateException(
+                    "Ollama response did not contain an embedding. "
+                            + "Check that Ollama is running and the "
+                            + "'nomic-embed-text' model is installed. "
+                            + "Response: "
+                            + error);
+        }
 
         float[] embedding =
                 new float[embeddingNode.size()];
