@@ -1,0 +1,7 @@
+The Chief Executive Officer of Acme Corp is John Smith.
+
+Acme Corp was founded in 2010.
+
+The headquarters is located in Bangalore.
+
+The company has 500 employees.
